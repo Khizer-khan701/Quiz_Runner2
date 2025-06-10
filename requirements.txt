@@ -1,0 +1,17 @@
+streamlit
+transformers
+torch
+PyPDF2
+sentencepiece
+bcrypt
+python-dotenv
+pytest
+langchain
+firebase-admin
+tzlocal
+pytest
+pytest-mock
+tf-keras
+python-dotenv
+PyMuPDF
+openai
