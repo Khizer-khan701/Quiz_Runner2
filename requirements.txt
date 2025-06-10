@@ -8,9 +8,9 @@ pytest
 langchain
 firebase-admin
 tzlocal
-pytest
 pytest-mock
 tf-keras
 python-dotenv
 PyMuPDF
-pytest
+openai
+

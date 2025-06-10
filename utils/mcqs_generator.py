@@ -3,13 +3,14 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 import openai
+import streamlit as st
 
 # Load environment variables from .env
 load_dotenv()
 
 # Set OpenAI API Key securely
 try:
-    openai.api_key = os.environ["OPENAI_API_KEY"]
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
 except KeyError:
     raise ValueError("OPENAI_API_KEY not set in environment. Please set it in a .env file.")
 
