@@ -10,7 +10,14 @@ load_dotenv()
 
 # Set OpenAI API Key securely
 try:
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
+    # Set OpenAI API Key securely
+    if "OPENAI_API_KEY" in st.secrets:
+        openai.api_key = st.secrets["OPENAI_API_KEY"]
+    elif "OPENAI_API_KEY" in os.environ:
+        openai.api_key = os.environ["OPENAI_API_KEY"]
+    else:
+        raise ValueError("OPENAI_API_KEY not set in Streamlit secrets or environment. Please check .env or Streamlit Cloud settings.")
+
 except KeyError:
     raise ValueError("OPENAI_API_KEY not set in environment. Please set it in a .env file.")
 
