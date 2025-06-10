@@ -193,3 +193,5 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 serviceAccountKey.json 
+
+quiz_runner/Scripts/git-filter-repo.exe
