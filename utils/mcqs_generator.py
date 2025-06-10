@@ -10,7 +10,7 @@ load_dotenv()
 
 # Set OpenAI API Key securely
 try:
-    openai.api_key = os.getenv["OPENAI_API_KEY"]
+    openai.api_key = os.getenv("OPENAI_API_KEY")
 except KeyError:
     raise ValueError("OPENAI_API_KEY not set in environment. Please set it in a .env file.")
 
