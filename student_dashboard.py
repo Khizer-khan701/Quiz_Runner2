@@ -89,12 +89,12 @@ def show_student_dashboard(db=None):
                             1 for q in data["questions"] if answers[q["question"]] == q["answer"]
                         )
                         total = len(data["questions"])
-                        score = round((correct / total) * 100, 2)
                         db.collection("student_results").add({
                             "student_id": st.session_state.uid,
                             "quiz_id": quiz.id,
                             "quiz_title": quiz_title,
-                            "score": score,
+                            "score": correct,  # Store score as integer
+                            "total": total,
                             "submitted_at": datetime.now(timezone.utc).isoformat()
                         })
                         st.success("✅ Quiz submitted successfully!")
@@ -129,7 +129,9 @@ def show_student_dashboard(db=None):
             for doc_id, r in results:
                 quiz_title = r.get("quiz_title", "Untitled Quiz")
                 submitted_at = r.get("submitted_at", "")[:10]
-                st.write(f"**{quiz_title}** — Score: {r['score']}% — Submitted: {submitted_at}")
+                score = r.get("score", 0)
+                total = r.get("total", 0)
+                st.write(f"**{quiz_title}** — Score: {score}/{total} — Submitted: {submitted_at}")
 
             if st.button("🗑️ Delete All Records"):
                 for doc_id, _ in results:

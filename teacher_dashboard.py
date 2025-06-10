@@ -181,7 +181,7 @@ def show_teacher_dashboard(db):
 
                         student_doc = db.collection("users").document(student_id).get()
                         student_name = student_doc.to_dict().get("name") if student_doc.exists else student_id
-                        st.write(f"👤 **{student_name}** — Score: {score}% — Submitted: {submitted_at}")
+                        st.write(f"👤 **{student_name}** — Score: {int(score)} — Submitted: {submitted_at}")
 
                     st.info("You cannot delete this quiz because students have submitted it.")
                 else:

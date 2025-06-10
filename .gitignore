@@ -195,3 +195,4 @@ cython_debug/
 serviceAccountKey.json 
 
 quiz_runner/Scripts/git-filter-repo.exe
+.env 

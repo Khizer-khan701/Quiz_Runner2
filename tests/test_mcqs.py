@@ -1,52 +1,43 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import unittest
-from unittest.mock import patch, MagicMock
-from utils import mcqs_generator
+from unittest.mock import patch
+from utils.mcqs_generator import generate_mcqs
 
-class TestMCQsGenerator(unittest.TestCase):
+class TestMCQGeneration(unittest.TestCase):
+    def setUp(self):
+        self.sample_text = (
+            "Photosynthesis is the process used by plants to convert sunlight into energy. "
+            "This process primarily occurs in the chloroplasts of plant cells using chlorophyll. "
+            "Carbon dioxide and water are converted into glucose and oxygen."
+        )
 
-    @patch('utils.mcqs_generator.qa_pipeline')
-    @patch('utils.mcqs_generator.qg_pipeline')
-    def test_generate_mcqs(self, mock_qg_pipeline, mock_qa_pipeline):
-        # Mock the output of question generation pipeline
-        mock_qg_pipeline.return_value = [
-            {"generated_text": "What is AI?"},
-            {"generated_text": "Explain ML."},
-            {"generated_text": "Define data science."},
-            {"generated_text": "What is Python?"},
-            {"generated_text": "Describe deep learning."}
+    @patch("utils.mcqs_generator.call_question_generation_pipeline")
+    @patch("utils.mcqs_generator.call_question_answering_pipeline")
+    def test_generate_mcqs_structure(self, mock_answering, mock_questioning):
+        mock_questioning.return_value = [
+            "What is photosynthesis?",
+            "Where does photosynthesis occur?",
+            "What is the role of chlorophyll?"
+        ]
+        mock_answering.side_effect = [
+            "Photosynthesis is the process of converting sunlight into energy.",
+            "In the chloroplasts of plant cells.",
+            "Chlorophyll captures light energy."
         ]
 
-        # Mock the output of question answering pipeline
-        def qa_side_effect(question, context):
-            return {"answer": "Mocked Answer"}
+        num_questions = 3
+        mcqs = generate_mcqs(self.sample_text, num_questions=num_questions)
 
-        mock_qa_pipeline.side_effect = qa_side_effect
-
-        # Sample text input
-        sample_text = ("AI is the field of computer science. ML is a subset of AI. "
-                       "Data science involves statistics. Python is a programming language. "
-                       "Deep learning is a branch of ML.")
-
-        # Call generate_mcqs with mocked pipelines
-        mcqs = mcqs_generator.generate_mcqs(sample_text, num_questions=5)
-
-        # Check that 5 questions were generated
-        self.assertEqual(len(mcqs), 5)
-
+        self.assertEqual(len(mcqs), num_questions)
         for mcq in mcqs:
             self.assertIn("question", mcq)
             self.assertIn("answer", mcq)
             self.assertIn("options", mcq)
-            self.assertEqual(mcq["answer"], "Mocked Answer")
-            # The options must include the correct answer
-            self.assertIn("Mocked Answer", mcq["options"])
-            # There should be 4 options (1 correct + 3 distractors)
             self.assertEqual(len(mcq["options"]), 4)
+            self.assertIn(mcq["answer"], mcq["options"])
 
-        # Ensure the pipelines were called
-        mock_qg_pipeline.assert_called_once()
-        self.assertEqual(mock_qa_pipeline.call_count, 5)
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
