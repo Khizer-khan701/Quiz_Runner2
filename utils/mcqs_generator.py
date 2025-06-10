@@ -15,69 +15,71 @@ except KeyError:
 
 OPENAI_MODEL = "gpt-3.5-turbo"
 
-def call_question_generation_pipeline(text_chunks):
-    questions = []
-    for chunk in text_chunks:
-        prompt = f"Based on the following text, generate one concise question:\n\nText: {chunk}\n\nQuestion:"
-        try:
-            response = openai.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that generates questions."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=64,
-                temperature=0.7,
-                n=1
-            )
-            question = response.choices[0].message.content.strip()
-            questions.append(question)
-        except Exception as e:
-            print(f"Error generating question: {e}")
-            questions.append("Question not generated")
-    return questions
+def generate_question_answer(chunk):
+    prompt = f"""
+Based on the following text, generate one multiple choice question. The question should have one correct answer and three incorrect but realistic distractors.
 
-def call_question_answering_pipeline(question, context):
-    prompt = f"Answer the following question based on the context below. If the answer is not directly available, say 'Not found'.\n\nContext: {context}\n\nQuestion: {question}\n\nAnswer:"
+Return the response in the following JSON format without any explanation:
+
+{{
+  "question": "<insert question>",
+  "options": ["<option A>", "<option B>", "<option C>", "<option D>"],
+  "answer": "<insert correct option text exactly as it appears in the options list>"
+}}
+
+Text:
+\"\"\"
+{chunk}
+\"\"\"
+"""
     try:
         response = openai.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": "You extract answers from context."},
+                {"role": "system", "content": "You are an assistant that generates educational multiple choice questions."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=64,
-            temperature=0.0,
-            n=1
+            temperature=0.7,
+            max_tokens=512
         )
-        answer = response.choices[0].message.content.strip()
-        return answer
+        content = response.choices[0].message.content.strip()
+        import json
+        return json.loads(content)
     except Exception as e:
-        print(f"Error answering question: {e}")
-        return "Not found"
+        print(f"Error generating MCQ: {e}")
+        return {
+            "question": "Could not generate question.",
+            "options": ["A", "B", "C", "D"],
+            "answer": "A"
+        }
 
 def generate_mcqs(text, num_questions=5):
     questions = []
-    sentences = [sent.strip() for sent in text.split('.') if sent.strip()]
+    sentences = [s.strip() for s in text.split('.') if len(s.strip()) > 30]
     random.shuffle(sentences)
     selected_chunks = sentences[:num_questions]
 
-    generated_questions = call_question_generation_pipeline(selected_chunks)
-
-    def extract_answer(q):
-        return call_question_answering_pipeline(q, text)
-
     with ThreadPoolExecutor() as executor:
-        answers = list(executor.map(extract_answer, generated_questions))
+        results = list(executor.map(generate_question_answer, selected_chunks))
 
-    for question, ans in zip(generated_questions, answers):
-        distractors = [f"{ans} option A", f"{ans} option B", f"{ans} option C"]
-        options = [ans] + distractors
-        random.shuffle(options)
+    for result in results:
+        question = result.get("question", "Missing question")
+        options = result.get("options", ["A", "B", "C", "D"])
+        answer_raw = result.get("answer", "")
+
+        # Determine if the answer is a letter (A/B/C/D) or the actual answer text
+        if len(answer_raw.strip()) == 1 and answer_raw.upper() in "ABCD":
+            answer_index = ord(answer_raw.upper()) - 65
+            correct_answer = options[answer_index] if answer_index < len(options) else options[0]
+        else:
+            # fallback if answer is text — match it to options (case-insensitive)
+            match = [opt for opt in options if opt.strip().lower() == answer_raw.strip().lower()]
+            correct_answer = match[0] if match else options[0]  # fallback to first
+
         questions.append({
             "question": question,
-            "answer": ans,
-            "options": options
+            "options": options,
+            "answer": correct_answer
         })
 
     return questions
@@ -85,7 +87,10 @@ def generate_mcqs(text, num_questions=5):
 # Example usage
 if __name__ == "__main__":
     sample_text = """
-    The Amazon rainforest is the largest rainforest in the world, covering an area of about 5.5 million square kilometers. It spans across nine countries, with the majority of it located in Brazil. The rainforest is home to an incredible diversity of plant and animal species, many of which are found nowhere else on Earth. It plays a crucial role in regulating the Earth's climate by absorbing vast amounts of carbon dioxide. Deforestation, primarily due to agriculture and logging, poses a significant threat to this vital ecosystem. Efforts are being made to conserve the Amazon and its unique biodiversity.
+    The Amazon rainforest is the largest rainforest in the world, covering about 5.5 million square kilometers.
+    It spans across nine countries, with most of it in Brazil. The rainforest has rich biodiversity, with many
+    unique species. It plays a key role in regulating the Earth's climate by absorbing carbon dioxide.
+    Deforestation due to farming and logging threatens this ecosystem. Conservation efforts aim to protect it.
     """
 
     print("Generating MCQs...\n")

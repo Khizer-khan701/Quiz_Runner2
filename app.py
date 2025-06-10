@@ -1,25 +1,16 @@
-# ✅ SET PAGE CONFIG FIRST (MUST BE THE FIRST STREAMLIT COMMAND)
 import streamlit as st
 st.set_page_config(page_title="Quiz Runner", layout="centered")
 
-# ✅ THEN IMPORT EVERYTHING ELSE
 from datetime import datetime
-import firebase_admin
-from firebase_admin import credentials, firestore
 from google.api_core.exceptions import ServiceUnavailable
+
+# ✅ Centralized Firebase setup
+from firebaseConfig import db
 
 # Utility modules
 from utils.auth import signup_user, login_user, get_user_info, send_password_reset
 
-# ✅ Initialize Firebase Admin SDK if not already initialized
-if not firebase_admin._apps:
-    cred = credentials.Certificate("serviceAccountKey.json")  # 🔁 Replace with actual path
-    firebase_admin.initialize_app(cred)
-
-# ✅ Create Firestore client
-db = firestore.client()
-
-# ✅ Safe Firestore call wrapper for user info
+# ✅ Safe Firestore call wrapper
 def safe_get_user_info(uid):
     try:
         doc = db.collection('users').document(uid).get()
@@ -44,7 +35,6 @@ def main():
             user = safe_get_user_info(st.session_state.uid)
             st.session_state.name = user.get("name") if user else None
     else:
-        # Initialize session state if not present
         if 'logged_in' not in st.session_state:
             st.session_state.logged_in = False
             st.session_state.role = None
@@ -69,10 +59,9 @@ def main():
                         st.session_state.role = user.get("role")
                         st.session_state.name = user.get("name")
                         st.session_state.uid = uid
-                        # ✅ Set query params on login
                         st.query_params["uid"] = uid
                         st.query_params["role"] = st.session_state.role
-                        st.rerun()  # ✅ Updated here
+                        st.rerun()
                     else:
                         st.error("❌ User profile not found or Firestore error.")
                 else:
@@ -103,15 +92,14 @@ def main():
 
         st.stop()
 
-    # ✅ Sidebar: User Info and Logout
+    # ✅ Sidebar
     with st.sidebar:
         st.markdown(f"### Welcome, {st.session_state.name}")
         st.markdown(f"**Role:** {st.session_state.role}")
         if st.button("Logout"):
             st.session_state.clear()
-            # ✅ Clear query params on logout
             st.query_params.clear()
-            st.rerun()  # ✅ Updated here
+            st.rerun()
 
     # ✅ Load Dashboards
     from teacher_dashboard import show_teacher_dashboard
