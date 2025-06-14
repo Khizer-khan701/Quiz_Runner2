@@ -2,10 +2,11 @@ import os
 import json
 from dotenv import load_dotenv
 import openai  # Correct import for openai>=1.0.0
+import streamlit as st
 
 # Load environment variables from .env
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 
 
 def generate_question_answer(text_chunk, retries=2):
