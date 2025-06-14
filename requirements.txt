@@ -12,5 +12,5 @@ pytest-mock
 tf-keras
 python-dotenv
 PyMuPDF
-openai
+openai==0.28
 
