@@ -1,8 +1,8 @@
 import os
 import json
-import streamlit as st
+import openai
 from dotenv import load_dotenv
-import openai  # openai>=1.0.0
+import streamlit as st
 
 # Load .env for local use
 load_dotenv()
@@ -28,11 +28,8 @@ Return the response ONLY as a JSON object like this:
 No explanation. Only JSON.
 """
 
-    for attempt in range(retries):
+    for _ in range(retries):
         try:
-            st.write(f"🧠 [Attempt {attempt+1}] Sending chunk to GPT...")
-            st.code(text_chunk[:300], language='text')
-
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
@@ -41,7 +38,6 @@ No explanation. Only JSON.
             )
 
             content = response.choices[0].message.content.strip()
-            st.code(content, language='json')
 
             cleaned = (
                 content
@@ -57,10 +53,8 @@ No explanation. Only JSON.
             parsed = json.loads(cleaned)
             return parsed
 
-        except json.JSONDecodeError as e:
-            st.error(f"❌ JSON Decode Error: {e}")
-        except Exception as e:
-            st.error(f"❌ OpenAI API Error: {e}")
+        except Exception:
+            continue  # retry silently
 
     return {
         "question": "Could not generate question.",
@@ -70,13 +64,9 @@ No explanation. Only JSON.
 
 
 def generate_mcqs(text, num_questions=3):
-    st.subheader("📄 Extracted Text Preview")
-    st.text(text[:500])
-
     sentences = [s.strip() for s in text.split('.') if len(s.strip()) > 20]
 
     if not sentences:
-        st.warning("⚠️ No valid sentences found in extracted text.")
         return [{
             "question": "No valid content found in PDF to generate questions.",
             "options": ["A", "B", "C", "D"],
@@ -95,8 +85,7 @@ def generate_mcqs(text, num_questions=3):
         chunks.append(chunk.strip())
 
     mcqs = []
-    for i, chunk in enumerate(chunks[:num_questions]):
-        st.write(f"🔄 Generating Question {i+1}...")
+    for chunk in chunks[:num_questions]:
         qa = generate_question_answer(chunk)
         mcqs.append(qa)
 
