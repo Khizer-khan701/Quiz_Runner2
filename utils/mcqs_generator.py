@@ -1,11 +1,13 @@
 import os
 import json
-from dotenv import load_dotenv
-import openai  # Correct import for openai>=1.0.0
 import streamlit as st
+from dotenv import load_dotenv
+import openai  # openai>=1.0.0
 
-# Load environment variables from .env
+# Load .env for local use
 load_dotenv()
+
+# Prioritize Streamlit Cloud secrets over .env
 openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 
 
@@ -28,7 +30,8 @@ No explanation. Only JSON.
 
     for attempt in range(retries):
         try:
-            print(f"\n[Attempt {attempt+1}] Sending chunk to GPT:\n{text_chunk[:100]}...\n")
+            st.write(f"🧠 [Attempt {attempt+1}] Sending chunk to GPT...")
+            st.code(text_chunk[:300], language='text')
 
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
@@ -38,7 +41,7 @@ No explanation. Only JSON.
             )
 
             content = response.choices[0].message.content.strip()
-            print(f"[Attempt {attempt+1}] GPT Response:\n{repr(content)}\n")
+            st.code(content, language='json')
 
             cleaned = (
                 content
@@ -55,9 +58,9 @@ No explanation. Only JSON.
             return parsed
 
         except json.JSONDecodeError as e:
-            print("JSON Decode Error:", e)
+            st.error(f"❌ JSON Decode Error: {e}")
         except Exception as e:
-            print("OpenAI API Error:", e)
+            st.error(f"❌ OpenAI API Error: {e}")
 
     return {
         "question": "Could not generate question.",
@@ -67,12 +70,13 @@ No explanation. Only JSON.
 
 
 def generate_mcqs(text, num_questions=3):
-    print("\n--- Extracted Text Preview ---\n")
-    print(text[:500], "\n------------------------------\n")
+    st.subheader("📄 Extracted Text Preview")
+    st.text(text[:500])
 
     sentences = [s.strip() for s in text.split('.') if len(s.strip()) > 20]
 
     if not sentences:
+        st.warning("⚠️ No valid sentences found in extracted text.")
         return [{
             "question": "No valid content found in PDF to generate questions.",
             "options": ["A", "B", "C", "D"],
@@ -92,7 +96,7 @@ def generate_mcqs(text, num_questions=3):
 
     mcqs = []
     for i, chunk in enumerate(chunks[:num_questions]):
-        print(f"\nGenerating Q{i+1} from chunk...")
+        st.write(f"🔄 Generating Question {i+1}...")
         qa = generate_question_answer(chunk)
         mcqs.append(qa)
 
